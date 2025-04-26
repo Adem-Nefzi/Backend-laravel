@@ -11,12 +11,12 @@ use App\Http\Controllers\AuthController;
 */
 
 // Route pour la connexion d'un utilisateur
-Route::post('/user/login', [AuthController::class, 'userLogin'])->name('user.login');
+// Route::post('/user/login', [AuthController::class, 'userLogin'])->name('user.login');
 
-// Route pour la connexion d'une association
-Route::post('/association/login', [AuthController::class, 'associationLogin'])->name('association.login');
+// // Route pour la connexion d'une association
+// Route::post('/association/login', [AuthController::class, 'associationLogin'])->name('association.login');
 
-Route::post('/register', [AuthController::class, 'register']);
+// Route::post('/register', [AuthController::class, 'register']);
 
 // app/Http/Middleware/VerifyCsrfToken.php
 
@@ -36,10 +36,8 @@ Route::prefix('associations/{association}')->group(function () {
     Route::post('verify', [AssociationController::class, 'verify'])->name('associations.verify');
     Route::post('reject', [AssociationController::class, 'reject'])->name('associations.reject');
     Route::post('upload-documents', [AssociationController::class, 'uploadDocuments'])
-         ->name('associations.upload-documents');
-
+        ->name('associations.upload-documents');
 });
 
 // Authentication Routes (if needed)
 //Auth::routes();
-
