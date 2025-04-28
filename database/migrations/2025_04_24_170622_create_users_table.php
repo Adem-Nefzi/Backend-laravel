@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('password_hash');
             $table->string('phone')->nullable();
             $table->string('address')->nullable();
-            $table->enum('user_type', ['individual', 'association', 'admin']);
+            $table->enum('user_type', ['donor', 'recipient', 'admin']);
             $table->text('bio')->nullable();
             $table->string('profile_picture')->nullable();
             $table->timestamp('email_verified_at')->nullable();

@@ -16,14 +16,15 @@ class AssociationAuthController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:associations',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => ['required', 'string', Rules\Password::defaults()], // ✅ Correct usage
             'phone' => 'nullable|string|max:50',
             'address' => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'logo_url' => 'nullable|string|max:255',
         ]);
 
-        Association::create([
+        $association = Association::create([
+            'user_id' => Auth::id(), // Link to logged-in user (if applicable)
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
@@ -34,7 +35,8 @@ class AssociationAuthController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Association registered successfully. Please log in.'
+            'message' => 'Association registered successfully',
+            'association' => $association // Return created association
         ], 201);
     }
 

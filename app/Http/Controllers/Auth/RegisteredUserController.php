@@ -12,26 +12,29 @@ class RegisteredUserController extends Controller
 {
     public function store(Request $request)
     {
-        $request->validate([
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name'  => ['required', 'string', 'max:255'],
-            'email'      => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password'   => ['required', 'confirmed', Rules\Password::defaults()],
-            'user_type'  => ['required', 'in:donor,recipient,admin'], // make sure user_type is provided
-            'phone'      => ['nullable', 'string', 'max:20'],
-            'address'    => ['nullable', 'string'],
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name'  => 'required|string|max:255',
+            'email'      => 'required|string|email|max:255|unique:users',
+            'password'   => ['required', 'string', Rules\Password::defaults()], // ✅ Combined rule
+            'user_type'  => 'required|in:donor,recipient,admin',
+            'phone'      => 'nullable|string|max:20',
+            'address'    => 'nullable|string',
         ]);
 
         $user = User::create([
-            'first_name' => $request->first_name,
-            'last_name'  => $request->last_name,
-            'email'      => $request->email,
-            'password'   => Hash::make($request->password),
-            'user_type'  => $request->user_type,
-            'phone'      => $request->phone,
-            'address'    => $request->address,
+            'first_name' => $validated['first_name'],
+            'last_name'  => $validated['last_name'],
+            'email'      => $validated['email'],
+            'password'   => Hash::make($validated['password']),
+            'user_type'  => $validated['user_type'],
+            'phone'      => $validated['phone'] ?? null,
+            'address'    => $validated['address'] ?? null,
         ]);
 
-        return response()->json(['message' => 'User registered successfully!'], 201);
+        return response()->json([
+            'message' => 'User registered successfully!',
+            'user' => $user // Return created user
+        ], 201);
     }
 }
