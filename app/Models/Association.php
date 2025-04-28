@@ -3,23 +3,32 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
-class Association extends Model
+class Association extends Authenticatable
 {
-    use HasFactory;
+    use HasFactory, HasApiTokens, Notifiable;
 
     protected $fillable = [
         'name',
         'email',
+        'password',
         'phone',
         'address',
         'description',
-        'creation_date',
         'logo_url',
     ];
-
-    protected $casts = [
-        'creation_date' => 'date',
+    protected $hidden = [
+        'password',
+        'remember_token',
     ];
+    public function users()
+    {
+        return $this->belongsToMany(User::class)
+            ->withPivot('role')
+            ->withTimestamps();
+    }
 }

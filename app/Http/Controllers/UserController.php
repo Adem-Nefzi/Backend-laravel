@@ -5,22 +5,39 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class UserController extends Controller
 {
-    public function index()
+    use AuthorizesRequests;
+    protected function isAdmin()
     {
-        $users = User::all();
-        return view('users.index', compact('users'));
+        return Auth::user() && Auth::user()->user_type === 'admin';
     }
 
-    public function create()
+    protected function checkOwnership(User $user)
     {
-        return view('users.create');
+        if (!$this->isAdmin() && Auth::id() !== $user->id) {
+            abort(403, 'Unauthorized action.');
+        }
+    }
+
+    public function index()
+    {
+        if (!$this->isAdmin()) {
+            abort(403, 'Only admins can view all users.');
+        }
+        $users = User::all();
+        return response()->json($users);
     }
 
     public function store(Request $request)
     {
+        if (!$this->isAdmin()) {
+            abort(403, 'Only admins can create users.');
+        }
+
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name'  => 'required|string|max:255',
@@ -32,19 +49,15 @@ class UserController extends Controller
         ]);
 
         $validated['password'] = Hash::make($validated['password']);
+        $user = User::create($validated);
 
-        User::create($validated);
-
-        return redirect()->route('users.index')->with('success', 'User created successfully');
-    }
-
-    public function edit(User $user)
-    {
-        return view('users.edit', compact('user'));
+        return response()->json(['message' => 'User created successfully', 'user' => $user]);
     }
 
     public function update(Request $request, User $user)
     {
+        $this->checkOwnership($user);
+
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name'  => 'required|string|max:255',
@@ -62,13 +75,13 @@ class UserController extends Controller
         }
 
         $user->update($validated);
-
-        return redirect()->route('users.index')->with('success', 'User updated successfully');
+        return response()->json(['message' => 'User updated successfully', 'user' => $user]);
     }
 
     public function destroy(User $user)
     {
+        $this->checkOwnership($user);
         $user->delete();
-        return redirect()->route('users.index')->with('success', 'User deleted successfully');
+        return response()->json(['message' => 'User deleted successfully']);
     }
 }
