@@ -6,17 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-
     public function up()
     {
-        Schema::table('associations', function (Blueprint $table) {
+        Schema::table('users', function (Blueprint $table) {
+            $table->softDeletes();
         });
     }
 
-    public function down(): void
+    public function down()
     {
-        Schema::table('associations', function (Blueprint $table) {
-            //
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropSoftDeletes();
         });
     }
 };

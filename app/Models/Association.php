@@ -25,10 +25,4 @@ class Association extends Authenticatable
         'password',
         'remember_token',
     ];
-    public function users()
-    {
-        return $this->belongsToMany(User::class)
-            ->withPivot('role')
-            ->withTimestamps();
-    }
 }

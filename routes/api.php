@@ -21,8 +21,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // User Profile
     Route::prefix('me')->group(function () {
-        Route::put('/', [UserController::class, 'update']); // Uses route-model binding
-        Route::delete('/', [UserController::class, 'destroy']);
+        Route::put('/', function (Request $request) {
+            return app(UserController::class)->update($request, $request->user());
+        });
+        Route::get('/', function (Request $request) {
+            return app(UserController::class)->show($request->user());
+        });
+        Route::delete('/', [UserController::class, 'destroySelf']);
     });
 
     // Association Profile
@@ -38,6 +43,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Admin Routes
 Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::get('/users/deleted', [UserController::class, 'deletedUsers']);
     Route::apiResource('users', UserController::class);
     Route::apiResource('associations', AssociationController::class)->except(['index', 'show']);
+    Route::post('/users/{user}/restore', [UserController::class, 'restore']);
 });

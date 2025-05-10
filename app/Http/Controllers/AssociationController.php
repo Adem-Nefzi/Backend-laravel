@@ -19,7 +19,7 @@ class AssociationController extends Controller
 
     protected function checkOwnership(Association $association)
     {
-        if (!$this->isAdmin() && Auth::id() !== $association->user_id) {
+        if (!$this->isAdmin()) {
             abort(403, 'Unauthorized action.');
         }
     }
@@ -35,82 +35,119 @@ class AssociationController extends Controller
         return response()->json($association);
     }
 
-    public function apiStore(Request $request)
+    public function store(Request $request)
     {
         if (!$this->isAdmin()) {
             abort(403, 'Only admins can create associations.');
         }
 
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
+            'email' => 'required|email|max:255|unique:associations,email',
             'password' => 'required|string|min:8',
-            'phone' => 'nullable|string|max:50',
+            'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'logo_url' => 'nullable|string',
+            'logo_url' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
-        $association = new Association($request->except('logo_url'));
-        $association->user_id = Auth::id();
+        try {
+            $association = new Association();
+            $association->name = $validated['name'];
+            $association->email = $validated['email'];
+            $association->password = bcrypt($validated['password']);
+            $association->phone = $validated['phone'] ?? null;
+            $association->address = $validated['address'] ?? null;
+            $association->description = $validated['description'] ?? null;
 
-        if ($request->hasFile('logo_url')) {
-            $path = $request->file('logo_url')->store('logos', 'public');
-            $association->logo_url = $path;
+            if ($request->hasFile('logo_url')) {
+                $path = $request->file('logo_url')->store('public/associations/logos');
+                $association->logo_url = Storage::url($path);
+            }
+
+            $association->save();
+
+            return response()->json([
+                'message' => 'Association created successfully',
+                'association' => $association
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to create association',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $association->save();
-        return response()->json(['message' => 'Association created successfully.', 'association' => $association], 201);
     }
 
     public function apiUpdate(Request $request, Association $association)
     {
         $this->checkOwnership($association);
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'password' => 'required|string|min:8',
-            'phone' => 'nullable|string|max:50',
-            'address' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'logo_url' => 'nullable|string',
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|max:255|unique:associations,email,' . $association->id,
+            'password' => 'sometimes|string|min:8',
+            'phone' => 'nullable|sometimes|string|max:20',
+            'address' => 'nullable|sometimes|string|max:255',
+            'description' => 'nullable|sometimes|string',
+            'logo_url' => 'nullable|sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
-        $association->fill($request->except('logo_url'));
-
-        if ($request->hasFile('logo_url')) {
-            if ($association->logo_url) {
-                Storage::disk('public')->delete($association->logo_url);
+        try {
+            if (isset($validated['name'])) {
+                $association->name = $validated['name'];
             }
-            $path = $request->file('logo_url')->store('logos', 'public');
-            $association->logo_url = $path;
-        }
+            if (isset($validated['email'])) {
+                $association->email = $validated['email'];
+            }
+            if (isset($validated['password'])) {
+                $association->password = bcrypt($validated['password']);
+            }
+            if (isset($validated['phone'])) {
+                $association->phone = $validated['phone'];
+            }
+            if (isset($validated['address'])) {
+                $association->address = $validated['address'];
+            }
+            if (isset($validated['description'])) {
+                $association->description = $validated['description'];
+            }
 
-        $association->save();
-        return response()->json(['message' => 'Association updated successfully.', 'association' => $association]);
+            if ($request->hasFile('logo_url')) {
+                // Delete old logo if exists
+                if ($association->logo_url) {
+                    $oldPath = str_replace('/storage', 'public', $association->logo_url);
+                    Storage::delete($oldPath);
+                }
+
+                $path = $request->file('logo_url')->store('public/associations/logos');
+                $association->logo_url = Storage::url($path);
+            }
+
+            $association->save();
+
+            return response()->json([
+                'message' => 'Association updated successfully',
+                'association' => $association
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to update association',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
-
-
-    public function apiDestroy(Request $request)
+    public function apiDestroy(Request $request, Association $association)
     {
-        // Get the currently authenticated association
-        $association = $request->user();
-
-        // Verify this is actually an association
-        if (!$association instanceof \App\Models\Association) {
-            abort(403, 'Only authenticated associations can delete themselves');
-        }
+        $this->checkOwnership($association);
 
         try {
-            // Delete the logo if exists
+            // Delete logo if exists
             if ($association->logo_url) {
-                Storage::disk('public')->delete($association->logo_url);
+                $path = str_replace('/storage', 'public', $association->logo_url);
+                Storage::delete($path);
             }
-
-            // Delete all tokens
-            $association->tokens()->delete();
 
             // Delete the association
             $association->delete();
