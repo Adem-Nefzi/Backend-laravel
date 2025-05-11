@@ -33,10 +33,8 @@ class User extends Authenticatable
     ];
 
     // Relationships (if any)
-    public function associations()
+    public function association()
     {
-        return $this->belongsToMany(Association::class)
-            ->withPivot('role')
-            ->withTimestamps();
+        return $this->hasOne(Association::class);
     }
 }

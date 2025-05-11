@@ -16,11 +16,12 @@ class AssociationAuthController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:associations',
-            'password' => ['required', 'string', Rules\Password::defaults()], // ✅ Correct usage
+            'password' => ['required', 'string', Rules\Password::defaults()],
             'phone' => 'nullable|string|max:50',
             'address' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'logo_url' => 'nullable|string|max:255',
+            'logo_url' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'category' => 'nullable|string|in:Food,Clothes,Healthcare,Education,Home supplies',
         ]);
 
         $association = Association::create([
@@ -32,11 +33,12 @@ class AssociationAuthController extends Controller
             'address' => $validated['address'] ?? null,
             'description' => $validated['description'] ?? null,
             'logo_url' => $validated['logo_url'] ?? null,
+            'category' => $validated['category'] ?? null,
         ]);
 
         return response()->json([
             'message' => 'Association registered successfully',
-            'association' => $association // Return created association
+            'association' => $association
         ], 201);
     }
 

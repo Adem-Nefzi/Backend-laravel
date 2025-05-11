@@ -33,24 +33,13 @@ class UserController extends Controller
     }
 
 
-    public function show(User $user)
+    public function show($user)
     {
-        $this->checkOwnership($user);
-
         return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'first_name' => $user->first_name,
-                'last_name' => $user->last_name,
-                'email' => $user->email,
-                'phone' => $user->phone,
-                'address' => $user->address,
-                'user_type' => $user->user_type,
-                'created_at' => $user->created_at,
-                'updated_at' => $user->updated_at
-            ]
+            'user' => $user->makeHidden(['password', 'remember_token']),
         ]);
     }
+
 
     public function store(Request $request)
     {
