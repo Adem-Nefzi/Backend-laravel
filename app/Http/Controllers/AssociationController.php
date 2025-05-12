@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class AssociationController extends Controller
 {
@@ -27,10 +29,6 @@ class AssociationController extends Controller
     // GET /api/associations (Admin only)
     public function index()
     {
-        if (!$this->isAdmin()) {
-            abort(403, 'Only admins can view all associations.');
-        }
-
         return response()->json([
             'associations' => Association::withTrashed()->get()
         ]);
@@ -101,48 +99,42 @@ class AssociationController extends Controller
     // PUT/PATCH /api/associations/{id} (Owner or Admin)
     public function update(Request $request, Association $association)
     {
-        // Verify the association belongs to the requesting user or the user is an admin
-        try {
-            $this->checkOwnership($association);
+        // // 1. Verify ownership (if user_id is set) or allow admin
+        // if (!$this->isAdmin() && $association->user_id !== $request->user()->id) {
+        //     abort(403, 'Unauthorized: You do not own this association.');
+        // }
 
-            $rules = [
-                'name' => 'sometimes|string|max:255',
-                'email' => 'sometimes|email|max:255|unique:associations,email,' . $association->id,
-                'password' => 'nullable|sometimes|string|min:8|confirmed',
-                'phone' => 'nullable|sometimes|string|max:20',
-                'address' => 'nullable|sometimes|string|max:255',
-                'description' => 'nullable|sometimes|string',
-                'category' => 'nullable|sometimes|string|in:Food,Clothes,Healthcare,Education,Home supplies',
-                'logo_url' => 'nullable|sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            ];
+        // 2. Validate input
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:associations,email,' . $association->id,
+            'password' => 'nullable|sometimes|string|min:8|confirmed',
+            'phone' => 'nullable|sometimes|string|max:20',
+            'address' => 'nullable|sometimes|string|max:255',
+            'description' => 'nullable|sometimes|string',
+            'category' => 'nullable|sometimes|string|in:Food,Clothes,Healthcare,Education,Home supplies',
+            'logo_url' => 'nullable|sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]);
 
-            $validated = $request->validate($rules);
+        // 3. Filter out null values
+        $validated = array_filter($validated, fn($value) => !is_null($value));
 
-            // Filter out null values to keep existing data
-            $validated = array_filter($validated, function ($value) {
-                return !is_null($value);
-            });
-
-            if (isset($validated['password'])) {
-                $validated['password'] = bcrypt($validated['password']);
-            }
-
-            if ($request->hasFile('logo_url')) {
-                $this->handleLogoUpload($association, $request->file('logo_url'), true);
-            }
-
-            $association->update($validated);
-
-            return response()->json([
-                'message' => 'Association updated successfully',
-                'association' => $association->fresh()->makeHidden(['password', 'remember_token'])
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Update failed',
-                'error' => $e->getMessage()
-            ], 500);
+        // 4. Handle password & logo updates
+        if (isset($validated['password'])) {
+            $validated['password'] = bcrypt($validated['password']);
         }
+
+        if ($request->hasFile('logo_url')) {
+            $this->handleLogoUpload($association, $request->file('logo_url'), true);
+        }
+
+        // 5. Update and return response
+        $association->update($validated);
+
+        return response()->json([
+            'message' => 'Association updated successfully',
+            'association' => $association->fresh()->makeHidden(['password'])
+        ]);
     }
 
     // DELETE /api/associations/{id} (Owner or Admin)
@@ -169,7 +161,8 @@ class AssociationController extends Controller
     public function destroySelf(Request $request)
     {
         try {
-            $association = $request->user()->association;
+            // Find the association by user_id
+            $association = Association::where('user_id', $request->user()->id)->first();
 
             if (!$association) {
                 return response()->json(['error' => 'No associated organization found'], 404);
@@ -250,5 +243,64 @@ class AssociationController extends Controller
             $oldPath = str_replace('/storage', 'public', $association->logo_url);
             Storage::delete($oldPath);
         }
+    }
+
+
+    // In AssociationController.php
+    // AssociationController.php
+
+    public function updateSelf(Request $request)
+    {
+        // Get the authenticated association
+        $association = $request->user();
+
+        // Validate the request data
+        $validator = Validator::make($request->all(), [
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|max:255|unique:associations,email,' . $association->id,
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+            'description' => 'nullable|string',
+            'category' => 'nullable|string|in:Food,Clothes,Healthcare,Education,Home supplies',
+            'password' => 'nullable|string|min:8|confirmed',
+            'logo_url' => 'sometimes|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Process the validated data
+        $validated = $validator->validated();
+
+        // Handle password update
+        if (isset($validated['password'])) {
+            $validated['password'] = bcrypt($validated['password']);
+            unset($validated['password_confirmation']);
+        }
+
+        // Handle file upload
+        if ($request->hasFile('logo_url')) {
+            // Delete old logo if exists
+            if ($association->logo_url) {
+                $oldPath = str_replace('/storage', 'public', $association->logo_url);
+                Storage::delete($oldPath);
+            }
+
+            // Store new logo
+            $path = $request->file('logo_url')->store('public/associations/logos');
+            $validated['logo_url'] = Storage::url($path);
+        }
+
+        // Update the association
+        $association->update($validated);
+
+        return response()->json([
+            'message' => 'Association updated successfully',
+            'association' => $association->fresh()->makeHidden(['password'])
+        ]);
     }
 }
