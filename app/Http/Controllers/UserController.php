@@ -169,4 +169,38 @@ class UserController extends Controller
 
         return response()->json($deletedUsers);
     }
+
+
+
+    public function forceDestroy($userId)
+    {
+        if (!$this->isAdmin()) {
+            abort(403, 'Only admins can permanently delete accounts');
+        }
+
+        try {
+            $user = User::withTrashed()->findOrFail($userId);
+
+            // First revoke all tokens if they exist
+            if (method_exists($user, 'tokens')) {
+                $user->tokens()->delete();
+            }
+
+            // Permanently delete the user
+            $user->forceDelete();
+
+            return response()->json([
+                'message' => 'User permanently deleted successfully'
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'error' => 'User not found'
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Permanent deletion failed',
+                'details' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
+        }
+    }
 }

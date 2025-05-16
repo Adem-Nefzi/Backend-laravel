@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\AssociationAuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AssociationController;
+use App\Http\Controllers\OffreController;
 use App\Models\Association;
 
 // Public Auth Routes
@@ -17,6 +18,15 @@ Route::post('association/login', [AssociationAuthController::class, 'login']);
 
 // Authenticated Routes
 Route::middleware('auth:sanctum')->group(function () {
+
+
+    //Donations Management
+    Route::post('/offers', [OffreController::class, 'store']);
+
+    Route::get('/association/{associationId}/offers', [OffreController::class, 'getAssociationOffers']);
+    Route::patch('/offers/{offerId}/status', [OffreController::class, 'updateOfferStatus']);
+
+
     // Shared
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy']);
 
@@ -67,10 +77,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Admin Routes
 Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+
+
     // Users Management
     Route::get('/users/deleted', [UserController::class, 'deletedUsers']);
 
     Route::post('/users/{user}/restore', [UserController::class, 'restore']);
+    Route::delete('/users/{user}/force', [UserController::class, 'forceDestroy']);
     Route::apiResource('users', UserController::class);
 
     // Associations Management
