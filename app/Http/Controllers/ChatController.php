@@ -146,4 +146,24 @@ class ChatController extends Controller
             'total_unread' => $messages->whereNull('read_at')->count()
         ]);
     }
+
+
+    public function getUserReceivedMessages(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $messages = Message::where('receiver_id', $user->id)
+            ->where('receiver_type', get_class($user))
+            ->with('sender') // Optional: eager load sender info
+            ->orderBy('sent_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'messages' => $messages,
+            'total_unread' => $messages->whereNull('read_at')->count()
+        ]);
+    }
 }

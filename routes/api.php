@@ -28,6 +28,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/chat/association/{associationId}', [ChatController::class, 'getConversation']);
     Route::post('/chat/association/{associationId}/send', [ChatController::class, 'sendToAssociation']);
     Route::post('/chat/mark-read/{senderId}', [ChatController::class, 'markAsRead']);
+    Route::get('/user/messages', [ChatController::class, 'getUserReceivedMessages']);
 
     // Shared
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy']);
