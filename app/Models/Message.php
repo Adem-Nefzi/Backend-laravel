@@ -15,7 +15,8 @@ class Message extends Model
         'message_content',
         'sent_at',
         'read_at',
-        'related_offer_id',
+        'sender_type', // Add this to distinguish user types
+        'receiver_type', // Add this to distinguish user types
     ];
 
     protected $casts = [
@@ -26,16 +27,11 @@ class Message extends Model
     // Relationships
     public function sender()
     {
-        return $this->belongsTo(User::class, 'sender_id');
+        return $this->morphTo();
     }
 
     public function receiver()
     {
-        return $this->belongsTo(User::class, 'receiver_id');
-    }
-
-    public function offer()
-    {
-        return $this->belongsTo(DonationOffer::class, 'related_offer_id');
+        return $this->morphTo(__FUNCTION__, 'receiver_type', 'receiver_id');
     }
 }

@@ -46,7 +46,7 @@ return [
         ],
 
         'association' => [
-            'driver' => 'session',
+            'driver' => 'sanctum',
             'provider' => 'associations',
         ],
     ],

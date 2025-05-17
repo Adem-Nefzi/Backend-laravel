@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\AssociationAuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AssociationController;
 use App\Http\Controllers\OffreController;
+use App\Http\Controllers\ChatController;
 use App\Models\Association;
 
 // Public Auth Routes
@@ -18,14 +19,15 @@ Route::post('association/login', [AssociationAuthController::class, 'login']);
 
 // Authenticated Routes
 Route::middleware('auth:sanctum')->group(function () {
-
-
-    //Donations Management
+    // Donations Management
     Route::post('/offers', [OffreController::class, 'store']);
-
     Route::get('/association/{associationId}/offers', [OffreController::class, 'getAssociationOffers']);
     Route::patch('/offers/{offerId}/status', [OffreController::class, 'updateOfferStatus']);
 
+    // Chat Routes (User side)
+    Route::get('/chat/association/{associationId}', [ChatController::class, 'getConversation']);
+    Route::post('/chat/association/{associationId}/send', [ChatController::class, 'sendToAssociation']);
+    Route::post('/chat/mark-read/{senderId}', [ChatController::class, 'markAsRead']);
 
     // Shared
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy']);
@@ -48,24 +50,18 @@ Route::middleware('auth:sanctum')->group(function () {
     // Association Profile for logged-in user
     Route::prefix('me/association')->group(function () {
         Route::get('/', function (Request $request) {
-            // Get association by user_id instead of relation
             $association = Association::where('user_id', $request->user()->id)->first();
-
             if (!$association) {
                 return response()->json(['error' => 'No association found for this user'], 404);
             }
-
             return app(AssociationController::class)->show($association);
         });
 
         Route::put('/', function (Request $request) {
-            // Get association by user_id instead of relation
             $association = Association::where('user_id', $request->user()->id)->first();
-
             if (!$association) {
                 return response()->json(['error' => 'No association found for this user'], 404);
             }
-
             return app(AssociationController::class)->update($request, $association);
         });
     });
@@ -75,13 +71,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('associations/{association}', [AssociationController::class, 'show']);
 });
 
+// Association-specific Routes
+Route::middleware(['auth:sanctum', 'association'])->group(function () {
+    // Association can send messages to users
+    Route::post('/chat/user/{userId}/send', [ChatController::class, 'sendToUser']);
+    Route::get('/association/messages', [ChatController::class, 'getAssociationReceivedMessages']);
+});
+
 // Admin Routes
 Route::middleware(['auth:sanctum', 'admin'])->group(function () {
-
-
     // Users Management
     Route::get('/users/deleted', [UserController::class, 'deletedUsers']);
-
     Route::post('/users/{user}/restore', [UserController::class, 'restore']);
     Route::delete('/users/{user}/force', [UserController::class, 'forceDestroy']);
     Route::apiResource('users', UserController::class);
