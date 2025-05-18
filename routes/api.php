@@ -9,6 +9,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\AssociationController;
 use App\Http\Controllers\OffreController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\RecipientRequest;
 use App\Models\Association;
 
 // Public Auth Routes
@@ -23,6 +24,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/offers', [OffreController::class, 'store']);
     Route::get('/association/{associationId}/offers', [OffreController::class, 'getAssociationOffers']);
     Route::patch('/offers/{offerId}/status', [OffreController::class, 'updateOfferStatus']);
+
+
+    // Recipient Requests Management
+    Route::post('/requests', [RecipientRequest::class, 'store']);
+    Route::get('/association/{associationId}/requests', [RecipientRequest::class, 'getAssociationOffers']);
+    Route::patch('/requests/{requestId}/status', [RecipientRequest::class, 'updateOfferStatus']);
+    Route::get('/user/{userId}/requests', [RecipientRequest::class, 'getRecipientRequests']);
 
     // Chat Routes (User side)
     Route::get('/chat/association/{associationId}', [ChatController::class, 'getConversation']);
