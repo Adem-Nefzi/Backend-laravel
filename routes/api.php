@@ -25,6 +25,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/association/{associationId}/offers', [OffreController::class, 'getAssociationOffers']);
     Route::patch('/offers/{offerId}/status', [OffreController::class, 'updateOfferStatus']);
 
+    //View all offers for a specific donor
+    Route::get('/donor/offers', [OffreController::class, 'getDonorOffers']);
+
+    // View all offers for a specific recipient
+    Route::get('/recipient/requests', [RecipientRequest::class, 'getRecipientRequests']);
+
 
     // Recipient Requests Management
     Route::post('/requests', [RecipientRequest::class, 'store']);

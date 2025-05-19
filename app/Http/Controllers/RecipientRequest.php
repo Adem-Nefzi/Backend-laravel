@@ -88,4 +88,26 @@ class RecipientRequest extends Controller
             'offer' => $offer
         ], 200);
     }
+
+    // Get all requests made by the authenticated recipient
+    public function getRecipientRequests(Request $request)
+    {
+        // Get the authenticated user
+        $user = Auth::user();
+
+        // Verify the user is a recipient
+        if ($user->user_type !== 'recipient') {
+            return response()->json(['error' => 'Only recipients can view their requests'], 403);
+        }
+
+        // Get all requests made by this recipient with association information
+        $requests = Recipient_Offers::where('user_id', $user->id)
+            ->with('association') // Include association information
+            ->orderBy('created_at', 'desc') // Show most recent first
+            ->get();
+
+        return response()->json([
+            'requests' => $requests
+        ], 200);
+    }
 }

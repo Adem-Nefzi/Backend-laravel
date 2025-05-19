@@ -88,4 +88,27 @@ class OffreController extends Controller
             'offer' => $offer
         ], 200);
     }
+
+
+    // Get all offers made by the authenticated donor
+    public function getDonorOffers(Request $request)
+    {
+        // Get the authenticated user
+        $user = Auth::user();
+
+        // Verify the user is a donor
+        if ($user->user_type !== 'donor') {
+            return response()->json(['error' => 'Only donors can view their offers'], 403);
+        }
+
+        // Get all offers made by this donor with association information
+        $offers = Offer::where('user_id', $user->id)
+            ->with('association') // Include association information
+            ->orderBy('created_at', 'desc') // Show most recent first
+            ->get();
+
+        return response()->json([
+            'offers' => $offers
+        ], 200);
+    }
 }
