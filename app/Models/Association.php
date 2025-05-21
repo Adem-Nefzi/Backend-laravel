@@ -31,10 +31,11 @@ class Association extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'deleted_at', // Add this to hidden
     ];
-    protected $dates = ['deleted_at'];
-
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'deleted_at' => 'datetime', // Add this
+    ];
 
     public function user()
     {

@@ -64,9 +64,9 @@ class ChatController extends Controller
         }
         $message = Message::create([
             'sender_id' => $user->id,
-            'sender_type' => get_class($user),
+            'sender_type' => 'user', // Changed from get_class($user)
             'receiver_id' => $association->id,
-            'receiver_type' => get_class($association),
+            'receiver_type' => 'association', // Changed from get_class($association)
             'message_content' => $request->message_content,
             'sent_at' => now(),
         ]);
@@ -137,7 +137,18 @@ class ChatController extends Controller
 
         // Get all messages where association is the receiver
         $messages = Message::where('receiver_id', $association->id)
-            ->with('sender') // Eager load sender info
+            ->where('receiver_type', 'association')
+            ->with(['sender' => function ($query) {
+                // Handle both user and association senders
+                $query->morphWith([
+                    'user' => function ($query) {
+                        // You can add specific constraints for user senders
+                    },
+                    'association' => function ($query) {
+                        // You can add specific constraints for association senders
+                    }
+                ]);
+            }])
             ->orderBy('sent_at', 'desc')
             ->get();
 

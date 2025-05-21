@@ -119,24 +119,37 @@ class AssociationController extends Controller
         // 3. Filter out null values
         $validated = array_filter($validated, fn($value) => !is_null($value));
 
-        // 4. Handle password & logo updates
-        if (isset($validated['password'])) {
-            $validated['password'] = bcrypt($validated['password']);
+        // 4. Remove logo_url from validated data since we'll handle it separately
+        if (isset($validated['logo_url'])) {
+            unset($validated['logo_url']);
         }
 
-        if ($request->hasFile('logo_url')) {
-            $this->handleLogoUpload($association, $request->file('logo_url'), true);
+        try {
+            // 5. Handle password update
+            if (isset($validated['password'])) {
+                $validated['password'] = bcrypt($validated['password']);
+            }
+
+            // 6. Update the association with the validated data (excluding logo)
+            $association->update($validated);
+
+            // 7. Handle logo upload separately
+            if ($request->hasFile('logo_url')) {
+                $this->handleLogoUpload($association, $request->file('logo_url'), true);
+            }
+
+            // 8. Return the updated association
+            return response()->json([
+                'message' => 'Association updated successfully',
+                'association' => $association->fresh()->makeHidden(['password'])
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Association update failed',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        // 5. Update and return response
-        $association->update($validated);
-
-        return response()->json([
-            'message' => 'Association updated successfully',
-            'association' => $association->fresh()->makeHidden(['password'])
-        ]);
     }
-
     // DELETE /api/associations/{id} (Owner or Admin)
     public function destroy(Association $association)
     {

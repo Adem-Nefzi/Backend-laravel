@@ -103,7 +103,7 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
 
     // Associations Management
     Route::get('/associations/trashed/all', [AssociationController::class, 'deletedAssociations']);
-    Route::post('/associations/{association}/restore', [AssociationController::class, 'restore']);
+    Route::post('/associations/{id}/restore', [AssociationController::class, 'restore']);
     Route::delete('/associations/{association}/force', [AssociationController::class, 'forceDelete']);
     Route::apiResource('associations', AssociationController::class)->except(['index', 'show']);
 });

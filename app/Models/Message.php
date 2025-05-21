@@ -32,6 +32,6 @@ class Message extends Model
 
     public function receiver()
     {
-        return $this->morphTo(__FUNCTION__, 'receiver_type', 'receiver_id');
+        return $this->morphTo();
     }
 }
